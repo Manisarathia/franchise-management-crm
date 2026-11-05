@@ -6,7 +6,7 @@ import {
   IndianRupee,
   Activity,
   CalendarDays,
-//   ArrowUpRight,
+  ArrowUpRight,
   TrendingUp,
   ShieldCheck,
   Clock,
@@ -26,7 +26,7 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-//   Cell,
+  Cell,
 } from 'recharts';
 
 import StatCard from '../components/StatCard';
