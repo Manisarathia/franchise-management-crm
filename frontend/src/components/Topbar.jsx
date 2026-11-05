@@ -1,0 +1,17 @@
+import { Search, Bell, ChevronDown, Menu } from 'lucide-react'
+export default function Topbar({ title, onMenu }) {
+    return <header className="sticky top-0 z-20 flex h-[76px] items-center justify-between border-b border-white/10 bg-ink-950/90 px-5 backdrop-blur-xl md:px-8">
+        <div className="flex items-center gap-3">
+            <button onClick={onMenu} className="rounded-lg p-2 text-slate-300 hover:bg-white/10 lg:hidden"><Menu size={20} /></button>
+            <div><h1 className="text-lg font-semibold text-white">{title}</h1>
+                <p className="hidden text-[11px] text-slate-500 sm:block">Franchise network workspace</p></div></div>
+        <div className="flex items-center gap-3">
+            <div className="hidden items-center gap-2 rounded-xl border border-white/10 bg-white/[.03] px-3 py-2 sm:flex"><Search size={15} className="text-slate-500" />
+                <input placeholder="Search anything..." className="w-36 bg-transparent text-xs text-white outline-none placeholder:text-slate-600 md:w-52" /></div>
+            <button className="relative rounded-xl border border-white/10 p-2.5 text-slate-400 hover:text-gold-400"><Bell size={17} />
+                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500" /></button><div className="flex items-center gap-2 border-l border-white/10 pl-3">
+                <div className="grid h-8 w-8 place-items-center rounded-full bg-gradient-to-br from-gold-300 to-gold-600 text-xs font-bold text-black">A</div>
+                <div className="hidden sm:block"><p className="text-xs font-semibold text-white">Admin</p>
+                    <p className="text-[10px] text-slate-500">Super Admin</p></div><ChevronDown size={14} className="text-slate-500" /></div></div>
+    </header>
+}

@@ -1,17 +1,13 @@
-// import { useState } from 'react'
-
-import './App.css'
-
-function App() {
-  return (
-    <div className="min-h-screen bg-gradient-to-r from-blue-600 to-green-500 flex items-center justify-center">
-      <h1 className="text-4xl font-bold text-white">
-        Tailwind CSS Installed Successfully!
-        Franchise Management CRM 
-
-      </h1>
-    </div>
-  )
-}
-
+import { useEffect, useState } from 'react'
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import Sidebar from './components/Sidebar'
+import Topbar from './components/Topbar'
+import Dashboard from './pages/Dashboard'
+import ResourcePage from './pages/ResourcePage'
+import Settings from './pages/Settings'
+import Login from './pages/Login'
+import { loadData, saveData } from './utils/storage'
+const titles={dashboard:'Dashboard',users:'User Management',roles:'Roles & Permissions',departments:'Department Management',settings:'System Settings',agreements:'Agreement Management',contracts:'Contract Management',documents:'Document Management',licenses:'License Management',renewals:'Renewal Management'}
+function ProtectedLayout({children}){const location=useLocation(),nav=useNavigate(),[data,setData]=useState(loadData),[mobile,setMobile]=useState(false);useEffect(()=>saveData(data),[data]);const key=location.pathname.split('/')[1]||'dashboard';return <div className="min-h-screen bg-ink-950 text-white"><Sidebar onLogout={()=>{localStorage.removeItem('franchise-crm-auth');nav('/login')}}/><div className="lg:pl-[260px]"><Topbar title={titles[key]||'Dashboard'} onMenu={()=>setMobile(!mobile)}/>{mobile&&<div className="fixed inset-0 z-40 bg-black/70 lg:hidden" onClick={()=>setMobile(false)}><div className="w-[280px] bg-[#0b0d0b] p-5" onClick={e=>e.stopPropagation()}><button onClick={()=>setMobile(false)} className="mb-5 text-xs text-gold-300">Close menu ×</button><div className="space-y-3">{Object.entries(titles).map(([k,v])=><button key={k} onClick={()=>{nav('/'+k);setMobile(false)}} className="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-300 hover:bg-white/10">{v}</button>)}</div></div></div>}<main className="mx-auto max-w-[1600px] p-5 md:p-8">{children(data,setData)}</main><footer className="border-t border-white/5 px-8 py-5 text-center text-[10px] text-slate-600">© 2026 Franchise Management CRM · Built for smarter franchise operations</footer></div></div>}
+function App(){const auth=localStorage.getItem('franchise-crm-auth')==='true';return <Routes><Route path="/login" element={<Login/>}/><Route path="/" element={<Navigate to={auth?'/dashboard':'/login'} replace/>}/>{Object.keys(titles).filter(k=>k!=='settings'&&k!=='dashboard').map(k=><Route key={k} path={`/${k}`} element={<ProtectedLayout>{(data,setData)=><ResourcePage type={k} data={data} setData={setData}/>}</ProtectedLayout>}/>)}<Route path="/settings" element={<ProtectedLayout>{()=><Settings/>}</ProtectedLayout>}/><Route path="/dashboard" element={<ProtectedLayout>{(data)=><Dashboard data={data}/>}</ProtectedLayout>}/><Route path="*" element={<Navigate to="/" replace/>}/></Routes>}
 export default App
