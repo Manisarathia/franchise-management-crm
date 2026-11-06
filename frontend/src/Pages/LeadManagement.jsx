@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   UserCheck,
   Search,
@@ -21,7 +21,9 @@ import {
   Kanban,
   Table as TableIcon,
   Star,
-  FileCheck
+  FileCheck,
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import {
   loadLeads,
@@ -46,6 +48,112 @@ const FRANCHISE_TIERS = [
   'Master Franchise',
   'Kiosk Model'
 ];
+
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Select option',
+  icon: Icon,
+  className = '',
+  align = 'full',
+  buttonClassName = ''
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (selectRef.current && !selectRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const normalizedOptions = useMemo(() => {
+    return options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt));
+  }, [options]);
+
+  const selectedOption = normalizedOptions.find(
+    (opt) =>
+      opt.value === value ||
+      opt.label === value ||
+      (typeof value === 'string' && opt.value.length > 3 && value.startsWith(opt.value))
+  );
+
+  const menuPositionClass =
+    align === 'right'
+      ? 'absolute right-0 top-full mt-1.5 w-56'
+      : align === 'left'
+      ? 'absolute left-0 top-full mt-1.5 w-56'
+      : 'absolute left-0 right-0 top-full mt-1.5';
+
+  return (
+    <div className={`relative ${className}`} ref={selectRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between rounded-xl border text-xs font-medium transition-all duration-200 outline-none cursor-pointer ${
+          buttonClassName || 'px-3.5 py-2.5 bg-black/40'
+        } ${
+          isOpen
+            ? 'border-gold-500 bg-gold-500/10 text-gold-300 shadow-sm shadow-gold-500/10 ring-1 ring-gold-500/30'
+            : 'border-white/10 text-white hover:border-gold-500/50 hover:bg-gold-500/5 hover:text-gold-300'
+        }`}
+      >
+        <div className="flex items-center gap-2 truncate">
+          {Icon && (
+            <Icon
+              size={13}
+              className={`shrink-0 transition-colors ${
+                isOpen || (value && value !== 'ALL') ? 'text-gold-400' : 'text-slate-400'
+              }`}
+            />
+          )}
+          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
+        </div>
+        <ChevronDown
+          size={14}
+          className={`text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+            isOpen ? 'rotate-180 text-gold-400' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`${menuPositionClass} max-h-56 overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40 rounded-2xl border border-gold-500/30 bg-ink-900/98 p-1.5 shadow-2xl backdrop-blur-2xl z-50`}
+        >
+          <div className="space-y-0.5">
+            {normalizedOptions.map((opt) => {
+              const isSelected = selectedOption?.value === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`group w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-all duration-150 text-left cursor-pointer ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 text-black font-bold shadow-md shadow-gold-500/10'
+                      : 'text-slate-300 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold'
+                  }`}
+                >
+                  <span className="font-medium group-hover:font-bold transition-all truncate">{opt.label}</span>
+                  {isSelected && <Check size={14} className="stroke-[2.5] text-black shrink-0 ml-2" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LeadManagement() {
   const [leads, setLeads] = useState(loadLeads);
@@ -90,7 +198,7 @@ export default function LeadManagement() {
     priority: 'High',
     stage: 'New Prospect',
     leadScore: 80,
-    assignedTo: 'Roshan (Lead Manager)',
+    assignedTo: 'Franchise Sales Director',
     nextFollowUp: '2026-11-10',
     notes: ''
   };
@@ -244,7 +352,7 @@ export default function LeadManagement() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 scroll-smooth">
       {/* Toast Alert */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-gold-500/30 bg-ink-900/95 p-4 text-xs shadow-2xl backdrop-blur-xl">
@@ -253,7 +361,7 @@ export default function LeadManagement() {
           </div>
           <div>
             <p className="font-semibold text-white">{toast.message}</p>
-            <p className="text-[10px] text-slate-400">Task 2: Lead Management Pipeline</p>
+            <p className="text-[10px] text-slate-400">Franchise CRM System</p>
           </div>
           <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-white">
             <X size={14} />
@@ -264,14 +372,9 @@ export default function LeadManagement() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-md bg-gold-500/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-gold-400 uppercase border border-gold-500/20">
-              Task 2 · Roshan
-            </span>
-            <span className="text-xs text-slate-400">Franchise Pipeline</span>
-          </div>
+          <p className="text-xs font-medium text-slate-500">Pipeline / Leads</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Lead Management</h1>
-          <p className="text-xs text-slate-400">Qualify high-potential franchise partners and drive deal progression.</p>
+          <p className="mt-1 text-xs text-slate-400">Qualify high-potential franchise partners and drive deal progression.</p>
         </div>
 
         <div className="flex items-center gap-3">
@@ -279,16 +382,20 @@ export default function LeadManagement() {
           <div className="flex items-center rounded-xl border border-white/10 bg-black/30 p-1">
             <button
               onClick={() => setViewMode('table')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === 'table' ? 'bg-gold-500/20 text-gold-300' : 'text-slate-400 hover:text-white'
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-gradient-to-r from-gold-500/25 to-gold-400/10 text-gold-300 border border-gold-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <TableIcon size={14} /> Table
             </button>
             <button
               onClick={() => setViewMode('kanban')}
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                viewMode === 'kanban' ? 'bg-gold-500/20 text-gold-300' : 'text-slate-400 hover:text-white'
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                viewMode === 'kanban'
+                  ? 'bg-gradient-to-r from-gold-500/25 to-gold-400/10 text-gold-300 border border-gold-500/30 shadow-sm'
+                  : 'text-slate-400 hover:text-white hover:bg-white/5'
               }`}
             >
               <Kanban size={14} /> Pipeline Board
@@ -297,7 +404,7 @@ export default function LeadManagement() {
 
           <button
             onClick={() => exportToCsv(leads, 'franchise_leads.csv')}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-medium text-slate-300 hover:border-gold-500/40 hover:text-gold-300 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-medium text-slate-300 hover:border-gold-500/40 hover:text-gold-300 hover:bg-white/[0.06] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
           >
             <Download size={14} /> Export CSV
           </button>
@@ -307,7 +414,7 @@ export default function LeadManagement() {
               setFormErrors({});
               setIsAddOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 px-4 py-2.5 text-xs font-bold text-black shadow-lg shadow-gold-500/10 hover:brightness-110 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 px-4 py-2.5 text-xs font-bold text-black shadow-lg shadow-gold-500/10 hover:brightness-110 hover:shadow-xl hover:shadow-gold-500/20 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
           >
             <Plus size={15} /> Add Franchise Lead
           </button>
@@ -315,49 +422,77 @@ export default function LeadManagement() {
       </div>
 
       {/* KPI Stats */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-ink-850 p-5 backdrop-blur-xl">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Card 1: Total Qualified Leads */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-gold-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-gold-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-gold-500/0 blur-2xl transition-all duration-500 group-hover:bg-gold-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-slate-400">Total Qualified Leads</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-gold-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">Total Qualified Leads</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-gold-500/20 bg-gold-500/10 text-gold-400 transition-all duration-300 group-hover:scale-110 group-hover:border-gold-500/40 group-hover:bg-gold-500/20 group-hover:rotate-3">
               <UserCheck size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.total}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Active in sales qualification</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-gold-200 transition-colors">{stats.total}</p>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-300 transition-all group-hover:border-gold-500/30 group-hover:bg-gold-500/10 group-hover:text-gold-300">
+              Active
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Active in sales qualification</p>
         </div>
 
-        <div className="rounded-2xl border border-rose-500/20 bg-ink-850 p-5 backdrop-blur-xl">
+        {/* Card 2: High Priority Leads */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-rose-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-rose-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-rose-500/0 blur-2xl transition-all duration-500 group-hover:bg-rose-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-rose-300">High Priority Leads</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-rose-500/10 text-rose-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">High Priority Leads</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-rose-500/20 bg-rose-500/10 text-rose-400 transition-all duration-300 group-hover:scale-110 group-hover:border-rose-500/40 group-hover:bg-rose-500/20 group-hover:rotate-3">
               <Star size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.highPriority}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Ready for closing & presentation</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-rose-200 transition-colors">{stats.highPriority}</p>
+            <span className="rounded-full border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 text-[10px] font-semibold text-rose-300 transition-all group-hover:border-rose-500/40 group-hover:bg-rose-500/20">
+              Priority
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Ready for closing & presentation</p>
         </div>
 
-        <div className="rounded-2xl border border-amber-500/20 bg-ink-850 p-5 backdrop-blur-xl">
+        {/* Card 3: In Due Diligence */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-amber-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-amber-500/0 blur-2xl transition-all duration-500 group-hover:bg-amber-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-amber-300">In Due Diligence</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">In Due Diligence</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400 transition-all duration-300 group-hover:scale-110 group-hover:border-amber-500/40 group-hover:bg-amber-500/20 group-hover:rotate-3">
               <FileCheck size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.inDiligence}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Financials & territory vetting</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-amber-200 transition-colors">{stats.inDiligence}</p>
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 transition-all group-hover:border-amber-500/40 group-hover:bg-amber-500/20">
+              Vetting
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Financials & territory vetting</p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/20 bg-ink-850 p-5 backdrop-blur-xl">
+        {/* Card 4: Application Sent */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-500/0 blur-2xl transition-all duration-500 group-hover:bg-emerald-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-emerald-300">Application Sent</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">Application Sent</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 transition-all duration-300 group-hover:scale-110 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20 group-hover:rotate-3">
               <TrendingUp size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.appSent}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Awaiting applicant form submission</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-emerald-200 transition-colors">{stats.appSent}</p>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 transition-all group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20">
+              Contract Ready
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Awaiting applicant submission</p>
         </div>
       </div>
 
@@ -381,56 +516,44 @@ export default function LeadManagement() {
 
         <div className="flex flex-wrap items-center gap-2">
           {/* Priority filter */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-500">Priority:</span>
-            <select
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
-              className="bg-transparent text-[11px] font-medium text-slate-300 outline-none cursor-pointer"
-            >
-              <option value="ALL" className="bg-ink-900 text-white">All Priorities</option>
-              <option value="High" className="bg-ink-900 text-white">High Priority</option>
-              <option value="Medium" className="bg-ink-900 text-white">Medium Priority</option>
-              <option value="Low" className="bg-ink-900 text-white">Low Priority</option>
-            </select>
-          </div>
+          <CustomSelect
+            value={priorityFilter}
+            onChange={setPriorityFilter}
+            options={[
+              { value: 'ALL', label: 'All Priorities' },
+              { value: 'High', label: 'High Priority' },
+              { value: 'Medium', label: 'Medium Priority' },
+              { value: 'Low', label: 'Low Priority' }
+            ]}
+            align="right"
+            buttonClassName="px-3 py-1.5 bg-black/20"
+          />
 
           {/* Franchise Tier Filter */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-1.5">
-            <span className="text-[10px] uppercase font-bold text-slate-500">Tier:</span>
-            <select
-              value={tierFilter}
-              onChange={(e) => setTierFilter(e.target.value)}
-              className="bg-transparent text-[11px] font-medium text-slate-300 outline-none cursor-pointer"
-            >
-              <option value="ALL" className="bg-ink-900 text-white">All Tiers</option>
-              {FRANCHISE_TIERS.map((t) => (
-                <option key={t} value={t} className="bg-ink-900 text-white">{t}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={tierFilter}
+            onChange={setTierFilter}
+            options={[{ value: 'ALL', label: 'All Tiers' }, ...FRANCHISE_TIERS.map((t) => ({ value: t, label: t }))]}
+            align="right"
+            buttonClassName="px-3 py-1.5 bg-black/20"
+          />
 
           {/* Stage Filter */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-1.5">
-            <Filter size={13} className="text-slate-400" />
-            <select
-              value={stageFilter}
-              onChange={(e) => setStageFilter(e.target.value)}
-              className="bg-transparent text-[11px] font-medium text-slate-300 outline-none cursor-pointer"
-            >
-              <option value="ALL" className="bg-ink-900 text-white">All Stages</option>
-              {PIPELINE_STAGES.map((s) => (
-                <option key={s} value={s} className="bg-ink-900 text-white">{s}</option>
-              ))}
-            </select>
-          </div>
+          <CustomSelect
+            value={stageFilter}
+            onChange={setStageFilter}
+            options={[{ value: 'ALL', label: 'All Stages' }, ...PIPELINE_STAGES.map((s) => ({ value: s, label: s }))]}
+            icon={Filter}
+            align="right"
+            buttonClassName="px-3 py-1.5 bg-black/20"
+          />
         </div>
       </div>
 
       {/* VIEW 1: TABLE VIEW */}
       {viewMode === 'table' ? (
         <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-850 shadow-xl">
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="border-b border-white/10 bg-white/[0.02] text-[10px] font-bold tracking-wider text-slate-400 uppercase">
@@ -448,13 +571,13 @@ export default function LeadManagement() {
               <tbody className="divide-y divide-white/5 text-slate-300">
                 {filtered.length > 0 ? (
                   filtered.map((item) => (
-                    <tr key={item.id} className="hover:bg-white/[0.03] transition-colors">
+                    <tr key={item.id} className="group/row hover:bg-white/[0.04] transition-all duration-200">
                       {/* ID & Score */}
                       <td className="px-5 py-4 font-mono font-semibold text-gold-300">
                         <div className="flex items-center gap-1.5">
-                          <span>{item.id}</span>
+                          <span className="group-hover/row:text-gold-400 group-hover/row:translate-x-0.5 transition-all">{item.id}</span>
                           {item.leadScore && (
-                            <span className="rounded bg-gold-500/10 px-1.5 py-0.5 text-[10px] font-bold text-gold-400" title="Lead Quality Score">
+                            <span className="rounded bg-gold-500/10 px-1.5 py-0.5 text-[10px] font-bold text-gold-400 group-hover/row:border group-hover/row:border-gold-500/30 transition-all" title="Lead Quality Score">
                               {item.leadScore}%
                             </span>
                           )}
@@ -468,26 +591,26 @@ export default function LeadManagement() {
 
                       {/* Candidate info */}
                       <td className="px-5 py-4">
-                        <p className="font-semibold text-white">{item.name}</p>
+                        <p className="font-semibold text-white group-hover/row:text-gold-200 transition-colors">{item.name}</p>
                         <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-slate-400">
                           <span className="flex items-center gap-1">
-                            <Mail size={11} className="text-slate-500" /> {item.email}
+                            <Mail size={11} className="text-slate-500 group-hover/row:text-slate-400 transition-colors" /> {item.email}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Phone size={11} className="text-slate-500" /> {item.phone}
+                            <Phone size={11} className="text-slate-500 group-hover/row:text-slate-400 transition-colors" /> {item.phone}
                           </span>
                         </div>
                       </td>
 
                       {/* Model / Tier */}
                       <td className="px-5 py-4">
-                        <span className="font-medium text-slate-200">{item.tier}</span>
+                        <span className="font-medium text-slate-200 group-hover/row:text-white transition-colors">{item.tier}</span>
                       </td>
 
                       {/* Territory */}
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-1 text-white">
-                          <MapPin size={12} className="text-gold-400 shrink-0" />
+                          <MapPin size={12} className="text-gold-400 shrink-0 group-hover/row:scale-110 transition-transform" />
                           <span>{item.city}, {item.state}</span>
                         </div>
                         {item.territory && (
@@ -502,14 +625,14 @@ export default function LeadManagement() {
 
                       {/* Priority */}
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getPriorityBadge(item.priority)}`}>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-transform duration-200 hover:scale-105 cursor-default ${getPriorityBadge(item.priority)}`}>
                           {item.priority}
                         </span>
                       </td>
 
                       {/* Stage */}
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStageBadge(item.stage)}`}>
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-transform duration-200 hover:scale-105 cursor-default ${getStageBadge(item.stage)}`}>
                           {item.stage}
                         </span>
                       </td>
@@ -517,7 +640,7 @@ export default function LeadManagement() {
                       {/* Next follow up */}
                       <td className="px-5 py-4 text-[11px]">
                         <div className="flex items-center gap-1.5 text-slate-300">
-                          <Calendar size={12} className="text-gold-400" />
+                          <Calendar size={12} className="text-gold-400 group-hover/row:scale-110 transition-transform" />
                           <span>{item.nextFollowUp || 'Not scheduled'}</span>
                         </div>
                         <p className="mt-0.5 text-[10px] text-slate-500 truncate max-w-[130px]">
@@ -533,7 +656,7 @@ export default function LeadManagement() {
                             <button
                               onClick={() => advanceStage(item)}
                               title="Advance Pipeline Stage"
-                              className="flex items-center gap-1 rounded-lg border border-gold-500/20 bg-gold-500/10 px-2 py-1 text-[11px] font-medium text-gold-300 hover:bg-gold-500/20"
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-1 text-[11px] font-medium text-gold-300 shadow-sm transition-all duration-200 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold hover:shadow-md hover:shadow-gold-500/20 hover:scale-105 active:scale-95 cursor-pointer"
                             >
                               <ArrowRight size={13} />
                               <span className="hidden xl:inline">Next Stage</span>
@@ -543,7 +666,7 @@ export default function LeadManagement() {
                           <button
                             onClick={() => openDetail(item)}
                             title="View Lead Profile"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                           >
                             <Eye size={15} />
                           </button>
@@ -551,7 +674,7 @@ export default function LeadManagement() {
                           <button
                             onClick={() => openEdit(item)}
                             title="Edit Lead"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-gold-300"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-gold-500/15 hover:text-gold-300 hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                           >
                             <Edit3 size={15} />
                           </button>
@@ -559,7 +682,7 @@ export default function LeadManagement() {
                           <button
                             onClick={() => openDelete(item)}
                             title="Delete Lead"
-                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
+                            className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-400 hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                           >
                             <Trash2 size={15} />
                           </button>
@@ -581,7 +704,7 @@ export default function LeadManagement() {
 
           <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 px-5 py-3 text-[11px] text-slate-500">
             <span>Showing {filtered.length} of {leads.length} qualified leads</span>
-            <span className="mt-1 sm:mt-0 text-slate-400">Task 2 Lead Management Engine</span>
+            <span className="mt-1 sm:mt-0 text-slate-400">Lead Qualification Pipeline · Real-time Sync</span>
           </div>
         </div>
       ) : (
@@ -590,11 +713,11 @@ export default function LeadManagement() {
           {PIPELINE_STAGES.filter((s) => s !== 'Disqualified').map((stage) => {
             const stageLeads = filtered.filter((l) => l.stage === stage);
             return (
-              <div key={stage} className="flex flex-col rounded-2xl border border-white/10 bg-ink-850 p-4 min-h-[480px]">
+              <div key={stage} className="flex flex-col rounded-2xl border border-white/10 bg-ink-850 p-4 min-h-[480px] transition-all duration-300 hover:border-white/20 hover:shadow-lg">
                 {/* Column Header */}
                 <div className="flex items-center justify-between border-b border-white/10 pb-3">
                   <div className="flex items-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-gold-400"></span>
+                    <span className="h-2 w-2 rounded-full bg-gold-400 shadow-sm shadow-gold-500/50"></span>
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">{stage}</h4>
                   </div>
                   <span className="rounded-full bg-white/10 px-2 py-0.5 text-[10px] font-bold text-slate-300">
@@ -603,38 +726,67 @@ export default function LeadManagement() {
                 </div>
 
                 {/* Cards Container */}
-                <div className="mt-3 flex-1 space-y-3 overflow-y-auto">
+                <div className="mt-3 flex-1 space-y-3 overflow-y-auto scroll-smooth max-h-[620px] pr-1.5 [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
                   {stageLeads.map((item) => (
                     <div
                       key={item.id}
                       onClick={() => openDetail(item)}
-                      className="group cursor-pointer rounded-xl border border-white/5 bg-ink-900/90 p-3.5 hover:border-gold-500/40 hover:bg-white/[0.04] transition-all shadow"
+                      className="group/card relative overflow-hidden rounded-2xl border border-white/10 bg-ink-900/95 p-4 shadow-md transition-all duration-300 hover:-translate-y-1.5 hover:border-gold-500/50 hover:bg-ink-850 hover:shadow-xl hover:shadow-gold-500/10 cursor-pointer"
                     >
+                      {/* Top Golden Accent Line on hover */}
+                      <div className="pointer-events-none absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-gold-400/0 to-transparent transition-all duration-500 group-hover/card:via-gold-400" />
+
+                      {/* Ambient background bloom on card hover */}
+                      <div className="pointer-events-none absolute -right-6 -bottom-6 h-20 w-20 rounded-full bg-gold-500/0 blur-xl transition-all duration-500 group-hover/card:bg-gold-500/10" />
+
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-bold text-gold-400">{item.id}</span>
-                        <span className={`rounded-full border px-2 py-0.2 text-[9px] font-semibold ${getPriorityBadge(item.priority)}`}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] font-bold text-gold-400 group-hover/card:text-gold-300 transition-colors">{item.id}</span>
+                          {item.leadScore && (
+                            <span className="rounded bg-gold-500/10 px-1 py-0.2 text-[9px] font-bold text-gold-400 transition-all group-hover/card:border group-hover/card:border-gold-500/30">
+                              {item.leadScore}%
+                            </span>
+                          )}
+                        </div>
+                        <span className={`rounded-full border px-2 py-0.5 text-[9px] font-semibold transition-transform duration-200 group-hover/card:scale-105 ${getPriorityBadge(item.priority)}`}>
                           {item.priority}
                         </span>
                       </div>
 
-                      <h5 className="mt-1.5 font-bold text-white text-xs group-hover:text-gold-300 transition-colors">
+                      <h5 className="mt-2 font-bold text-white text-xs group-hover/card:text-gold-200 transition-colors">
                         {item.name}
                       </h5>
 
-                      <p className="mt-1 text-[11px] text-slate-400 flex items-center gap-1">
-                        <MapPin size={11} className="text-gold-400" /> {item.city}
+                      <p className="mt-1 text-[11px] text-slate-400 flex items-center gap-1 group-hover/card:text-slate-300 transition-colors">
+                        <MapPin size={11} className="text-gold-400 shrink-0 group-hover/card:scale-110 transition-transform" /> {item.city}
                       </p>
 
-                      <div className="mt-2 flex items-center justify-between border-t border-white/5 pt-2 text-[10px]">
-                        <span className="text-slate-400">{item.tier}</span>
-                        <span className="font-semibold text-gold-300">{item.investmentCapacity}</span>
+                      <div className="mt-2.5 flex items-center justify-between border-t border-white/5 pt-2 text-[10px]">
+                        <span className="text-slate-400 group-hover/card:text-slate-300 transition-colors">{item.tier}</span>
+                        <span className="font-semibold text-gold-300 group-hover/card:text-gold-200 transition-colors">{item.investmentCapacity}</span>
                       </div>
 
                       <div className="mt-2 flex items-center justify-between pt-1 text-[9px] text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <Clock size={10} /> {item.nextFollowUp}
+                        <span className="flex items-center gap-1 group-hover/card:text-slate-400 transition-colors">
+                          <Clock size={10} className="text-slate-400" /> {item.nextFollowUp}
                         </span>
-                        <span className="font-medium text-slate-400">{item.assignedTo.split(' ')[0]}</span>
+
+                        {stage !== 'Application Sent' ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              advanceStage(item);
+                            }}
+                            title="Advance to next pipeline stage"
+                            className="opacity-0 group-hover/card:opacity-100 flex items-center gap-1 rounded-md border border-gold-500/30 bg-gold-500/10 px-2 py-0.5 text-[9px] font-semibold text-gold-300 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold hover:scale-105 transition-all duration-200 cursor-pointer shadow-sm"
+                          >
+                            <span>Advance</span>
+                            <ArrowRight size={10} />
+                          </button>
+                        ) : (
+                          <span className="font-medium text-emerald-400">Ready</span>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -653,8 +805,8 @@ export default function LeadManagement() {
 
       {/* MODAL: ADD LEAD */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-base font-bold text-white">Add New Qualified Franchise Lead</h3>
@@ -725,15 +877,12 @@ export default function LeadManagement() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Franchise Model Tier</label>
-                  <select
+                  <CustomSelect
                     value={formData.tier}
-                    onChange={(e) => setFormData({ ...formData, tier: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    {FRANCHISE_TIERS.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, tier: val })}
+                    options={FRANCHISE_TIERS}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
@@ -749,28 +898,26 @@ export default function LeadManagement() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Lead Priority</label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="High">High Priority</option>
-                    <option value="Medium">Medium Priority</option>
-                    <option value="Low">Low Priority</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, priority: val })}
+                    options={[
+                      { value: 'High', label: 'High Priority' },
+                      { value: 'Medium', label: 'Medium Priority' },
+                      { value: 'Low', label: 'Low Priority' }
+                    ]}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Initial Pipeline Stage</label>
-                  <select
+                  <CustomSelect
                     value={formData.stage}
-                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    {PIPELINE_STAGES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, stage: val })}
+                    options={PIPELINE_STAGES}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
@@ -827,8 +974,8 @@ export default function LeadManagement() {
 
       {/* MODAL: EDIT LEAD */}
       {isEditOpen && selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-base font-bold text-white">Edit Lead #{selectedLead.id}</h3>
@@ -854,41 +1001,36 @@ export default function LeadManagement() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Pipeline Stage</label>
-                  <select
+                  <CustomSelect
                     value={formData.stage}
-                    onChange={(e) => setFormData({ ...formData, stage: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    {PIPELINE_STAGES.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, stage: val })}
+                    options={PIPELINE_STAGES}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Lead Priority</label>
-                  <select
+                  <CustomSelect
                     value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="High">High</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Low">Low</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, priority: val })}
+                    options={[
+                      { value: 'High', label: 'High' },
+                      { value: 'Medium', label: 'Medium' },
+                      { value: 'Low', label: 'Low' }
+                    ]}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Franchise Model Tier</label>
-                  <select
+                  <CustomSelect
                     value={formData.tier}
-                    onChange={(e) => setFormData({ ...formData, tier: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    {FRANCHISE_TIERS.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, tier: val })}
+                    options={FRANCHISE_TIERS}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
@@ -944,8 +1086,8 @@ export default function LeadManagement() {
 
       {/* MODAL: VIEW LEAD PROFILE */}
       {isDetailOpen && selectedLead && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gold-500/20 text-gold-300 font-extrabold text-base">

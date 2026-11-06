@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  HelpCircle,
+  Inbox,
+  Sparkles,
   Search,
   Plus,
   Download,
@@ -20,7 +21,8 @@ import {
   X,
   AlertCircle,
   Copy,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import {
   loadEnquiries,
@@ -29,20 +31,161 @@ import {
   exportToCsv
 } from '../utils/task2Storage';
 
+const BUDGET_OPTIONS = [
+  { value: '₹10 - ₹15 Lakhs', label: '₹10 - ₹15 Lakhs (Kiosk)' },
+  { value: '₹15 - ₹25 Lakhs', label: '₹15 - ₹25 Lakhs (Express Unit)' },
+  { value: '₹25 - ₹35 Lakhs', label: '₹25 - ₹35 Lakhs (Standard Store)' },
+  { value: '₹40 - ₹50 Lakhs', label: '₹40 - ₹50 Lakhs (Flagship Store)' },
+  { value: '₹50+ Lakhs', label: '₹50+ Lakhs (Multi-Unit / Master)' }
+];
+
+const SOURCE_OPTIONS = [
+  'Official Website',
+  'Franchise India Expo',
+  'LinkedIn Campaign',
+  'Direct Referral',
+  'Instagram Ad'
+];
+
+const STATUS_OPTIONS = [
+  'New',
+  'Contacted',
+  'Under Review',
+  'Converted',
+  'Dropped'
+];
+
+function CustomSelect({
+  value,
+  onChange,
+  options,
+  placeholder = 'Select option',
+  icon: Icon,
+  className = '',
+  align = 'full',
+  buttonClassName = ''
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const selectRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (selectRef.current && !selectRef.current.contains(e.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const normalizedOptions = useMemo(() => {
+    return options.map((opt) => (typeof opt === 'string' ? { value: opt, label: opt } : opt));
+  }, [options]);
+
+  const selectedOption = normalizedOptions.find(
+    (opt) =>
+      opt.value === value ||
+      opt.label === value ||
+      (typeof value === 'string' && opt.value.length > 3 && value.startsWith(opt.value))
+  );
+
+  const menuPositionClass =
+    align === 'right'
+      ? 'absolute right-0 top-full mt-1.5 w-56'
+      : align === 'left'
+      ? 'absolute left-0 top-full mt-1.5 w-56'
+      : 'absolute left-0 right-0 top-full mt-1.5';
+
+  return (
+    <div className={`relative ${className}`} ref={selectRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between rounded-xl border text-xs font-medium transition-all duration-200 outline-none cursor-pointer ${
+          buttonClassName || 'px-3.5 py-2.5 bg-black/40'
+        } ${
+          isOpen
+            ? 'border-gold-500 bg-gold-500/10 text-gold-300 shadow-sm shadow-gold-500/10 ring-1 ring-gold-500/30'
+            : 'border-white/10 text-white hover:border-gold-500/50 hover:bg-gold-500/5 hover:text-gold-300'
+        }`}
+      >
+        <div className="flex items-center gap-2 truncate">
+          {Icon && (
+            <Icon
+              size={13}
+              className={`shrink-0 transition-colors ${
+                isOpen || (value && value !== 'ALL') ? 'text-gold-400' : 'text-slate-400'
+              }`}
+            />
+          )}
+          <span className="truncate">{selectedOption ? selectedOption.label : placeholder}</span>
+        </div>
+        <ChevronDown
+          size={14}
+          className={`text-slate-400 transition-transform duration-200 shrink-0 ml-2 ${
+            isOpen ? 'rotate-180 text-gold-400' : ''
+          }`}
+        />
+      </button>
+
+      {isOpen && (
+        <div
+          className={`${menuPositionClass} max-h-56 overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40 rounded-2xl border border-gold-500/30 bg-ink-900/98 p-1.5 shadow-2xl backdrop-blur-2xl z-50`}
+        >
+          <div className="space-y-0.5">
+            {normalizedOptions.map((opt) => {
+              const isSelected = selectedOption?.value === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(opt.value);
+                    setIsOpen(false);
+                  }}
+                  className={`group w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-all duration-150 text-left cursor-pointer ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 text-black font-bold shadow-md shadow-gold-500/10'
+                      : 'text-slate-300 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold'
+                  }`}
+                >
+                  <span className="font-medium group-hover:font-bold transition-all truncate">{opt.label}</span>
+                  {isSelected && <Check size={14} className="stroke-[2.5] text-black shrink-0 ml-2" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function FranchiseEnquiries() {
   const navigate = useNavigate();
   const [enquiries, setEnquiries] = useState(loadEnquiries);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [sourceFilter, setSourceFilter] = useState('ALL');
-  
+  const [isSourceOpen, setIsSourceOpen] = useState(false);
+  const sourceDropdownRef = useRef(null);
+
+  const sourcesList = [
+    { value: 'ALL', label: 'All Sources' },
+    { value: 'Official Website', label: 'Official Website' },
+    { value: 'Franchise India Expo', label: 'Franchise India Expo' },
+    { value: 'LinkedIn Campaign', label: 'LinkedIn Campaign' },
+    { value: 'Direct Referral', label: 'Direct Referral' },
+    { value: 'Instagram Ad', label: 'Instagram Ad' }
+  ];
+
   // Modals state
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
-  
+
   // Notification Toast
   const [toast, setToast] = useState(null);
   const [copiedId, setCopiedId] = useState(null);
@@ -59,6 +202,17 @@ export default function FranchiseEnquiries() {
       return () => clearTimeout(timer);
     }
   }, [toast]);
+
+  // Click outside to close source dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sourceDropdownRef.current && !sourceDropdownRef.current.contains(e.target)) {
+        setIsSourceOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Form State
   const initialForm = {
@@ -212,7 +366,7 @@ export default function FranchiseEnquiries() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 scroll-smooth">
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-gold-500/30 bg-ink-900/95 p-4 text-xs shadow-2xl backdrop-blur-xl">
@@ -221,7 +375,7 @@ export default function FranchiseEnquiries() {
           </div>
           <div>
             <p className="font-semibold text-white">{toast.message}</p>
-            <p className="text-[10px] text-slate-400">Task 2: Franchise Enquiries Management</p>
+            <p className="text-[10px] text-slate-400">Franchise CRM System</p>
           </div>
           <button onClick={() => setToast(null)} className="ml-2 text-slate-400 hover:text-white">
             <X size={14} />
@@ -232,20 +386,15 @@ export default function FranchiseEnquiries() {
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <span className="rounded-md bg-gold-500/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wider text-gold-400 uppercase border border-gold-500/20">
-              Task 2 · Roshan
-            </span>
-            <span className="text-xs text-slate-400">Inbound Pipeline</span>
-          </div>
+          <p className="text-xs font-medium text-slate-500">Pipeline / Enquiries</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-white">Franchise Enquiries</h1>
-          <p className="text-xs text-slate-400">Capture, qualify, and triage prospective franchise candidate inquiries.</p>
+          <p className="mt-1 text-xs text-slate-400">Capture, qualify, and triage prospective franchise candidate inquiries.</p>
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={() => exportToCsv(enquiries, 'franchise_enquiries.csv')}
-            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-medium text-slate-300 hover:border-gold-500/40 hover:text-gold-300 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs font-medium text-slate-300 hover:border-gold-500/40 hover:text-gold-300 hover:bg-white/[0.06] hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
           >
             <Download size={14} /> Export CSV
           </button>
@@ -255,7 +404,7 @@ export default function FranchiseEnquiries() {
               setFormErrors({});
               setIsAddOpen(true);
             }}
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 px-4 py-2.5 text-xs font-bold text-black shadow-lg shadow-gold-500/10 hover:brightness-110 transition-all"
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 px-4 py-2.5 text-xs font-bold text-black shadow-lg shadow-gold-500/10 hover:brightness-110 hover:shadow-xl hover:shadow-gold-500/20 hover:scale-[1.02] active:scale-95 transition-all duration-200 cursor-pointer"
           >
             <Plus size={15} /> Capture Enquiry
           </button>
@@ -263,50 +412,77 @@ export default function FranchiseEnquiries() {
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/10 bg-ink-850 p-5 backdrop-blur-xl">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {/* Card 1: Total Enquiries */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-gold-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-gold-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-gold-500/0 blur-2xl transition-all duration-500 group-hover:bg-gold-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-slate-400">Total Enquiries</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/5 text-gold-300">
-              <HelpCircle size={18} />
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">Total Enquiries</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-gold-500/20 bg-gold-500/10 text-gold-400 transition-all duration-300 group-hover:scale-110 group-hover:border-gold-500/40 group-hover:bg-gold-500/20 group-hover:rotate-3">
+              <Inbox size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.total}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">All registered franchise prospects</p>
-        </div>
-
-        <div className="rounded-2xl border border-sky-500/20 bg-ink-850 p-5 backdrop-blur-xl">
-          <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-sky-400">New Inbound</p>
-            <span className="relative flex h-3 w-3">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75"></span>
-              <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500"></span>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-gold-200 transition-colors">{stats.total}</p>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold text-slate-300 transition-all group-hover:border-gold-500/30 group-hover:bg-gold-500/10 group-hover:text-gold-300">
+              All Records
             </span>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.newCount}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Pending initial contact & screening</p>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Total registered prospects</p>
         </div>
 
-        <div className="rounded-2xl border border-amber-500/20 bg-ink-850 p-5 backdrop-blur-xl">
+        {/* Card 2: New Inbound */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-sky-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-sky-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-sky-500/0 blur-2xl transition-all duration-500 group-hover:bg-sky-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-amber-300">Under Review / Contacted</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-500/10 text-amber-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">New Inbound</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-sky-500/20 bg-sky-500/10 text-sky-400 transition-all duration-300 group-hover:scale-110 group-hover:border-sky-500/40 group-hover:bg-sky-500/20 group-hover:rotate-3">
+              <Sparkles size={18} />
+            </div>
+          </div>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-sky-200 transition-colors">{stats.newCount}</p>
+            <span className="rounded-full border border-sky-500/20 bg-sky-500/10 px-2 py-0.5 text-[10px] font-semibold text-sky-300 transition-all group-hover:border-sky-500/40 group-hover:bg-sky-500/20">
+              Pending Review
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Needs first contact screening</p>
+        </div>
+
+        {/* Card 3: Under Review */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-amber-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-amber-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-amber-500/0 blur-2xl transition-all duration-500 group-hover:bg-amber-500/15" />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">Under Review / Contacted</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-amber-500/20 bg-amber-500/10 text-amber-400 transition-all duration-300 group-hover:scale-110 group-hover:border-amber-500/40 group-hover:bg-amber-500/20 group-hover:rotate-3">
               <Clock size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.contactedCount}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">In evaluation or preliminary call</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-amber-200 transition-colors">{stats.contactedCount}</p>
+            <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[10px] font-semibold text-amber-300 transition-all group-hover:border-amber-500/40 group-hover:bg-amber-500/20">
+              In Discussion
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Active discovery & screening</p>
         </div>
 
-        <div className="rounded-2xl border border-emerald-500/20 bg-ink-850 p-5 backdrop-blur-xl">
+        {/* Card 4: Converted to Leads */}
+        <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-ink-850 p-5 shadow-sm transition-all duration-300 hover:border-emerald-500/40 hover:-translate-y-1 hover:shadow-xl hover:shadow-emerald-500/10 cursor-pointer">
+          <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-emerald-500/0 blur-2xl transition-all duration-500 group-hover:bg-emerald-500/15" />
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium text-emerald-400">Converted to Leads</p>
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
+            <span className="text-xs font-semibold text-slate-400 group-hover:text-slate-200 transition-colors">Converted to Leads</span>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 transition-all duration-300 group-hover:scale-110 group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20 group-hover:rotate-3">
               <TrendingUp size={18} />
             </div>
           </div>
-          <h3 className="mt-2 text-2xl font-extrabold text-white">{stats.convertedCount}</h3>
-          <p className="mt-1 text-[11px] text-slate-500">Promoted into sales pipeline</p>
+          <div className="mt-3 flex items-baseline justify-between">
+            <p className="text-2xl font-bold tracking-tight text-white group-hover:text-emerald-200 transition-colors">{stats.convertedCount}</p>
+            <span className="rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 transition-all group-hover:border-emerald-500/40 group-hover:bg-emerald-500/20">
+              Qualified
+            </span>
+          </div>
+          <p className="mt-1.5 text-[11px] text-slate-500 truncate group-hover:text-slate-400 transition-colors">Promoted into sales pipeline</p>
         </div>
       </div>
 
@@ -335,64 +511,105 @@ export default function FranchiseEnquiries() {
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                  statusFilter === st
-                    ? 'bg-gold-500/20 text-gold-300 shadow'
-                    : 'text-slate-400 hover:text-white'
-                }`}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all ${statusFilter === st
+                  ? 'bg-gold-500/20 text-gold-300 shadow'
+                  : 'text-slate-400 hover:text-white'
+                  }`}
               >
                 {st}
               </button>
             ))}
           </div>
 
-          {/* Source Dropdown */}
-          <div className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-black/20 px-3 py-1.5">
-            <Filter size={13} className="text-slate-400" />
-            <select
-              value={sourceFilter}
-              onChange={(e) => setSourceFilter(e.target.value)}
-              className="bg-transparent text-[11px] font-medium text-slate-300 outline-none cursor-pointer"
+          {/* Custom Styled Source Dropdown */}
+          <div className="relative" ref={sourceDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsSourceOpen((prev) => !prev)}
+              className={`flex items-center gap-2 rounded-xl border px-3.5 py-1.5 text-xs font-medium transition-all duration-200 outline-none cursor-pointer ${
+                isSourceOpen || sourceFilter !== 'ALL'
+                  ? 'border-gold-500 bg-gold-500/10 text-gold-300 shadow-sm shadow-gold-500/10'
+                  : 'border-white/10 bg-black/30 text-slate-300 hover:border-gold-500/50 hover:bg-gold-500/5 hover:text-gold-300'
+              }`}
             >
-              <option value="ALL" className="bg-ink-900 text-white">All Sources</option>
-              <option value="Official Website" className="bg-ink-900 text-white">Official Website</option>
-              <option value="Franchise India Expo" className="bg-ink-900 text-white">Franchise India Expo</option>
-              <option value="LinkedIn Campaign" className="bg-ink-900 text-white">LinkedIn Campaign</option>
-              <option value="Direct Referral" className="bg-ink-900 text-white">Direct Referral</option>
-              <option value="Instagram Ad" className="bg-ink-900 text-white">Instagram Ad</option>
-            </select>
+              <Filter
+                size={13}
+                className={sourceFilter !== 'ALL' || isSourceOpen ? 'text-gold-400' : 'text-slate-400'}
+              />
+              <span className="text-[11px] font-semibold">
+                {sourcesList.find((s) => s.value === sourceFilter)?.label || 'All Sources'}
+              </span>
+              <ChevronDown
+                size={13}
+                className={`text-slate-400 transition-transform duration-200 ${
+                  isSourceOpen ? 'rotate-180 text-gold-400' : ''
+                }`}
+              />
+            </button>
+
+            {/* Dropdown Menu */}
+            {isSourceOpen && (
+              <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl border border-gold-500/30 bg-ink-900/98 p-1.5 shadow-2xl backdrop-blur-2xl z-50">
+                <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400 border-b border-white/5 mb-1">
+                  Filter by Source
+                </div>
+                <div className="space-y-0.5">
+                  {sourcesList.map((opt) => {
+                    const isSelected = sourceFilter === opt.value;
+                    return (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => {
+                          setSourceFilter(opt.value);
+                          setIsSourceOpen(false);
+                        }}
+                        className={`group w-full flex items-center justify-between rounded-xl px-3 py-2 text-xs transition-all duration-150 text-left cursor-pointer ${
+                          isSelected
+                            ? 'bg-gradient-to-r from-gold-500 via-gold-400 to-gold-300 text-black font-bold shadow-md shadow-gold-500/10'
+                            : 'text-slate-300 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold'
+                        }`}
+                      >
+                        <span className="font-medium group-hover:font-bold transition-all">{opt.label}</span>
+                        {isSelected && <Check size={14} className="stroke-[2.5] text-black shrink-0" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* Main Table */}
       <div className="overflow-hidden rounded-2xl border border-white/10 bg-ink-850 shadow-xl">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
           <table className="w-full text-left text-xs">
             <thead>
               <tr className="border-b border-white/10 bg-white/[0.02] text-[10px] font-bold tracking-wider text-slate-400 uppercase">
-                <th className="px-5 py-4">Enquiry ID</th>
-                <th className="px-5 py-4">Prospect / Contact</th>
-                <th className="px-5 py-4">Preferred Location</th>
-                <th className="px-5 py-4">Budget Range</th>
-                <th className="px-5 py-4">Lead Source</th>
-                <th className="px-5 py-4">Received Date</th>
-                <th className="px-5 py-4">Status</th>
-                <th className="px-5 py-4 text-right">Actions</th>
+                <th className="px-5 py-4 whitespace-nowrap">Enquiry ID</th>
+                <th className="px-5 py-4 whitespace-nowrap">Prospect / Contact</th>
+                <th className="px-5 py-4 whitespace-nowrap">Preferred Location</th>
+                <th className="px-5 py-4 whitespace-nowrap">Budget Range</th>
+                <th className="px-5 py-4 whitespace-nowrap">Lead Source</th>
+                <th className="px-5 py-4 whitespace-nowrap">Received Date</th>
+                <th className="px-5 py-4 whitespace-nowrap">Status</th>
+                <th className="px-5 py-4 text-right whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5 text-slate-300">
               {filtered.length > 0 ? (
                 filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-white/[0.03] transition-colors">
+                  <tr key={item.id} className="group/row hover:bg-white/[0.04] transition-all duration-200">
                     {/* ID */}
-                    <td className="px-5 py-4 font-mono font-semibold text-gold-300">
+                    <td className="px-5 py-4 font-mono font-semibold text-gold-300 whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
-                        <span>{item.id}</span>
+                        <span className="group-hover/row:text-gold-400 group-hover/row:translate-x-0.5 transition-all">{item.id}</span>
                         <button
                           onClick={() => copyToClipboard(item.id, item.id)}
                           title="Copy ID"
-                          className="text-slate-500 hover:text-white"
+                          className="opacity-60 group-hover/row:opacity-100 text-slate-500 hover:text-gold-300 hover:scale-125 transition-all cursor-pointer"
                         >
                           {copiedId === item.id ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
                         </button>
@@ -402,22 +619,22 @@ export default function FranchiseEnquiries() {
                     {/* Prospect Info */}
                     <td className="px-5 py-4">
                       <div>
-                        <p className="font-semibold text-white">{item.name}</p>
-                        <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-slate-400">
+                        <p className="font-semibold text-white whitespace-nowrap group-hover/row:text-gold-200 transition-colors">{item.name}</p>
+                        <div className="mt-1 flex flex-col gap-0.5 text-[11px] text-slate-400 whitespace-nowrap">
                           <span className="flex items-center gap-1">
-                            <Mail size={11} className="text-slate-500" /> {item.email}
+                            <Mail size={11} className="text-slate-500 group-hover/row:text-slate-400 transition-colors" /> {item.email}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Phone size={11} className="text-slate-500" /> {item.phone}
+                            <Phone size={11} className="text-slate-500 group-hover/row:text-slate-400 transition-colors" /> {item.phone}
                           </span>
                         </div>
                       </div>
                     </td>
 
                     {/* Location */}
-                    <td className="px-5 py-4">
+                    <td className="px-5 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-1.5 text-white">
-                        <MapPin size={13} className="text-gold-400 shrink-0" />
+                        <MapPin size={13} className="text-gold-400 shrink-0 group-hover/row:scale-110 transition-transform" />
                         <span>{item.city}, {item.state}</span>
                       </div>
                       {item.territory && (
@@ -426,48 +643,48 @@ export default function FranchiseEnquiries() {
                     </td>
 
                     {/* Investment Range */}
-                    <td className="px-5 py-4">
-                      <span className="inline-block rounded-md bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-slate-200 border border-white/5">
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className="inline-block rounded-md bg-white/[0.04] px-2.5 py-1 text-[11px] font-medium text-slate-200 border border-white/5 group-hover/row:border-gold-500/20 transition-colors">
                         {item.investmentRange}
                       </span>
                     </td>
 
                     {/* Source */}
-                    <td className="px-5 py-4 text-[11px] text-slate-400">
+                    <td className="px-5 py-4 text-[11px] text-slate-400 whitespace-nowrap">
                       {item.source}
                     </td>
 
                     {/* Date */}
-                    <td className="px-5 py-4 text-[11px] text-slate-500">
+                    <td className="px-5 py-4 text-[11px] text-slate-500 whitespace-nowrap">
                       {item.receivedDate}
                     </td>
 
                     {/* Status */}
-                    <td className="px-5 py-4">
-                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold ${getStatusBadge(item.status)}`}>
+                    <td className="px-5 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold transition-transform duration-200 hover:scale-105 cursor-default ${getStatusBadge(item.status)}`}>
                         {item.status}
                       </span>
                     </td>
 
                     {/* Actions */}
-                    <td className="px-5 py-4 text-right">
+                    <td className="px-5 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end gap-1.5">
                         {/* Quick Convert */}
                         {item.status !== 'Converted' && (
                           <button
                             onClick={() => handleConvertToLead(item)}
                             title="Convert to Qualified Lead"
-                            className="flex items-center gap-1 rounded-lg border border-gold-500/20 bg-gold-500/10 px-2 py-1 text-[11px] font-medium text-gold-300 hover:bg-gold-500/20"
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-gold-500/30 bg-gold-500/10 px-2.5 py-1 text-[11px] font-medium text-gold-300 shadow-sm transition-all duration-200 hover:bg-gradient-to-r hover:from-gold-500 hover:via-gold-400 hover:to-gold-300 hover:text-black hover:font-bold hover:shadow-md hover:shadow-gold-500/20 hover:scale-105 active:scale-95 cursor-pointer"
                           >
                             <UserPlus size={13} />
-                            <span className="hidden xl:inline">To Lead</span>
+                            <span>To Lead</span>
                           </button>
                         )}
 
                         <button
                           onClick={() => openDetail(item)}
                           title="View Details"
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-white hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                         >
                           <Eye size={15} />
                         </button>
@@ -475,7 +692,7 @@ export default function FranchiseEnquiries() {
                         <button
                           onClick={() => openEdit(item)}
                           title="Edit Enquiry"
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-white/10 hover:text-gold-300"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-gold-500/15 hover:text-gold-300 hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                         >
                           <Edit3 size={15} />
                         </button>
@@ -483,7 +700,7 @@ export default function FranchiseEnquiries() {
                         <button
                           onClick={() => openDelete(item)}
                           title="Delete"
-                          className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/10 hover:text-rose-400"
+                          className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-500/15 hover:text-rose-400 hover:scale-115 active:scale-95 transition-all duration-150 cursor-pointer"
                         >
                           <Trash2 size={15} />
                         </button>
@@ -507,15 +724,15 @@ export default function FranchiseEnquiries() {
         <div className="flex flex-col sm:flex-row items-center justify-between border-t border-white/10 px-5 py-3 text-[11px] text-slate-500">
           <span>Showing {filtered.length} of {enquiries.length} enquiries</span>
           <span className="mt-1 sm:mt-0 text-slate-400">
-            Task 2 Franchise Pipeline · Synced to Local Storage
+            Franchise Network Operations · Real-time Sync
           </span>
         </div>
       </div>
 
       {/* MODAL: ADD NEW ENQUIRY */}
       {isAddOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-base font-bold text-white">Capture New Franchise Enquiry</h3>
@@ -607,32 +824,22 @@ export default function FranchiseEnquiries() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Investment Budget Range</label>
-                  <select
+                  <CustomSelect
                     value={formData.investmentRange}
-                    onChange={(e) => setFormData({ ...formData, investmentRange: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="₹10 - ₹15 Lakhs">₹10 - ₹15 Lakhs (Kiosk)</option>
-                    <option value="₹15 - ₹25 Lakhs">₹15 - ₹25 Lakhs (Express Unit)</option>
-                    <option value="₹25 - ₹35 Lakhs">₹25 - ₹35 Lakhs (Standard Store)</option>
-                    <option value="₹40 - ₹50 Lakhs">₹40 - ₹50 Lakhs (Flagship Store)</option>
-                    <option value="₹50+ Lakhs">₹50+ Lakhs (Multi-Unit / Master)</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, investmentRange: val })}
+                    options={BUDGET_OPTIONS}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Enquiry Source</label>
-                  <select
+                  <CustomSelect
                     value={formData.source}
-                    onChange={(e) => setFormData({ ...formData, source: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="Official Website">Official Website</option>
-                    <option value="Franchise India Expo">Franchise India Expo</option>
-                    <option value="LinkedIn Campaign">LinkedIn Campaign</option>
-                    <option value="Direct Referral">Direct Referral</option>
-                    <option value="Instagram Ad">Instagram Ad</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, source: val })}
+                    options={SOURCE_OPTIONS}
+                    className="mt-1.5"
+                  />
                 </div>
               </div>
 
@@ -680,8 +887,8 @@ export default function FranchiseEnquiries() {
 
       {/* MODAL: EDIT ENQUIRY */}
       {isEditOpen && selectedEnquiry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div>
                 <h3 className="text-base font-bold text-white">Edit Enquiry #{selectedEnquiry.id}</h3>
@@ -707,17 +914,12 @@ export default function FranchiseEnquiries() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Enquiry Status</label>
-                  <select
+                  <CustomSelect
                     value={formData.status}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="New">New</option>
-                    <option value="Contacted">Contacted</option>
-                    <option value="Under Review">Under Review</option>
-                    <option value="Converted">Converted</option>
-                    <option value="Dropped">Dropped</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, status: val })}
+                    options={STATUS_OPTIONS}
+                    className="mt-1.5"
+                  />
                 </div>
 
                 <div>
@@ -752,17 +954,12 @@ export default function FranchiseEnquiries() {
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-300">Budget Range</label>
-                  <select
+                  <CustomSelect
                     value={formData.investmentRange}
-                    onChange={(e) => setFormData({ ...formData, investmentRange: e.target.value })}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-ink-850 px-3.5 py-2 text-xs text-white outline-none focus:border-gold-500"
-                  >
-                    <option value="₹10 - ₹15 Lakhs">₹10 - ₹15 Lakhs</option>
-                    <option value="₹15 - ₹25 Lakhs">₹15 - ₹25 Lakhs</option>
-                    <option value="₹25 - ₹35 Lakhs">₹25 - ₹35 Lakhs</option>
-                    <option value="₹40 - ₹50 Lakhs">₹40 - ₹50 Lakhs</option>
-                    <option value="₹50+ Lakhs">₹50+ Lakhs</option>
-                  </select>
+                    onChange={(val) => setFormData({ ...formData, investmentRange: val })}
+                    options={BUDGET_OPTIONS}
+                    className="mt-1.5"
+                  />
                 </div>
               </div>
 
@@ -798,8 +995,8 @@ export default function FranchiseEnquiries() {
 
       {/* MODAL: VIEW DETAILS */}
       {isDetailOpen && selectedEnquiry && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm transition-opacity duration-200">
+          <div className="w-full max-w-xl rounded-2xl border border-white/10 bg-ink-900 p-6 shadow-2xl max-h-[92vh] overflow-y-auto scroll-smooth [scrollbar-width:thin] [scrollbar-color:rgba(214,165,46,0.3)_transparent] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-white/10 [&::-webkit-scrollbar-thumb]:rounded-full hover:[&::-webkit-scrollbar-thumb]:bg-gold-500/40">
             <div className="flex items-center justify-between border-b border-white/10 pb-4">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold-500/20 text-gold-300 font-bold">

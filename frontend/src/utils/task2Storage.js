@@ -1,4 +1,4 @@
-// Task 2 Data Store & Persistence (Franchise Enquiries & Application Management)
+// Franchise Enquiries & Lead Pipeline Data Store
 
 const ENQUIRIES_KEY = 'franchise-crm-task2-enquiries';
 const LEADS_KEY = 'franchise-crm-task2-leads';
@@ -111,7 +111,7 @@ export const initialLeads = [
     priority: 'High',
     stage: 'Due Diligence',
     leadScore: 92,
-    assignedTo: 'Roshan (Lead Manager)',
+    assignedTo: 'Franchise Sales Director',
     createdDate: '2026-10-29',
     nextFollowUp: '2026-11-09',
     notes: 'Background check complete. Net worth verified. Legal disclosure documents sent for review.'
@@ -130,7 +130,7 @@ export const initialLeads = [
     priority: 'High',
     stage: 'Application Sent',
     leadScore: 88,
-    assignedTo: 'Roshan (Lead Manager)',
+    assignedTo: 'Franchise Sales Director',
     createdDate: '2026-10-22',
     nextFollowUp: '2026-11-08',
     notes: 'Application form dispatched. Prime corner property identified with high footfall.'
@@ -168,7 +168,7 @@ export const initialLeads = [
     priority: 'High',
     stage: 'Presentation / Meeting',
     leadScore: 95,
-    assignedTo: 'Roshan (Lead Manager)',
+    assignedTo: 'Franchise Sales Director',
     createdDate: '2026-10-18',
     nextFollowUp: '2026-11-07',
     notes: 'In-person meeting scheduled at headquarters for master territory agreement negotiation.'
@@ -248,7 +248,7 @@ export function convertEnquiryToLead(enquiry) {
     priority: 'High',
     stage: 'New Prospect',
     leadScore: 80,
-    assignedTo: 'Roshan (Lead Manager)',
+    assignedTo: 'Franchise Sales Director',
     createdDate: new Date().toISOString().split('T')[0],
     nextFollowUp: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     notes: `Converted directly from enquiry ${enquiry.id}. ${enquiry.notes || ''}`
