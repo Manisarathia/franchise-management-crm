@@ -12,6 +12,8 @@ import {
   FolderOpen,
   BadgeCheck,
   RefreshCw,
+  HelpCircle,
+  UserCheck,
   ChevronRight,
   LogOut,
   X,
@@ -33,6 +35,13 @@ const groups = [
       { to: '/roles', label: 'Roles & Permissions', icon: ShieldCheck },
       { to: '/departments', label: 'Department Management', icon: Building2 },
       { to: '/settings', label: 'System Settings', icon: Settings },
+    ],
+  },
+  {
+    label: 'ENQUIRIES & APPLICATIONS',
+    items: [
+      { to: '/enquiries', label: 'Franchise Enquiries', icon: HelpCircle },
+      { to: '/leads', label: 'Lead Management', icon: UserCheck },
     ],
   },
   {
